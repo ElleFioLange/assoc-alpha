@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   StyleSheet,
@@ -15,41 +15,111 @@ import {
   Pressable,
   Text,
   ScrollView,
+  Modal,
+  Button,
 } from "react-native";
 import Carousel from "react-native-snap-carousel";
+import Logo from "./assets/logo.svg";
+import { OPENAI_API_KEY } from "./api-key";
 
 const win = Dimensions.get("window");
 const width = win.width * 0.8;
-const margin = win.height * 0.06;
 
-type Item = { name: string; image: any; dims: { w: number; h: number } };
+type Item = { name: string; image: any };
 
 const testItems = [
   {
     name: "red octobers",
     image: require("./assets/product_pics/red_octobers.jpeg"),
-    dims: { w: 1188, h: 747 },
   },
   {
     name: "off---white bag",
-    image: require("./assets/product_pics/offwhite_bag.jpg"),
-    dims: { w: 1170, h: 1755 },
+    image: require("./assets/product_pics/offwhite_bag.jpeg"),
   },
   {
     name: "supreme crowbar",
     image: require("./assets/product_pics/supreme_crowbar.png"),
-    dims: { w: 300, h: 135 },
+  },
+  {
+    name: "dior j1s",
+    image: require("./assets/product_pics/dior_j1s.jpeg"),
+  },
+  {
+    name: "vv sandals",
+    image: require("./assets/product_pics/vv_sandals.jpeg"),
   },
 ];
 
-const Separator = () => <View style={{ marginTop: margin }} />;
+const ascFn = async (
+  question: string,
+  setAscModalVis: (b: boolean) => void,
+  setOpenAiAnswer: (text: string) => void
+) => {
+  setAscModalVis(true);
+  fetch("https://api.openai.com/v1/engines/davinci/completions", {
+    method: "POST",
+    mode: "cors",
+    cache: "no-cache",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      prompt: `The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly.
+        Human: Hello, who are you?
+        AI: I am an AI created by OpenAI. How can I help you today?
+        Human: ${question}
+        AI:`,
+      max_tokens: 20,
+      temperature: 0.9,
+      stop: ["\n"],
+    }),
+  })
+    .then((response) => response.json())
+    .then((response) => {
+      setOpenAiAnswer(response.choices[0].text);
+    });
+};
+
+const Separator = (n: number) => (
+  <View style={{ marginTop: width * 0.02 * n }} />
+);
 
 export default function App(): JSX.Element {
-  const [input, setInput] = React.useState("");
+  const [asc, setAsc] = useState("");
+  const [ans, setAns] = useState("");
+
+  const [ascModalVis, setAscModalVis] = useState(false);
+  const [openAiAnswer, setOpenAiAnswer] = useState("");
 
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground source={require("./assets/bg.png")} style={styles.bg}>
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={ascModalVis}
+          onRequestClose={() => {
+            setAscModalVis(!ascModalVis);
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "white",
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text>{openAiAnswer}</Text>
+            <Button
+              title="Close"
+              onPress={() => {
+                setAscModalVis(!ascModalVis);
+              }}
+            />
+          </View>
+        </Modal>
         <ScrollView>
           <TouchableWithoutFeedback
             style={styles.container}
@@ -60,23 +130,38 @@ export default function App(): JSX.Element {
               style={styles.container}
             >
               <View style={styles.container}>
-                <Separator />
-                <Image
-                  source={require("./assets/logo.png")}
-                  style={styles.logo}
+                {Separator(6)}
+                <Logo
+                  width={width}
+                  height={width * 0.6}
+                  style={styles.shadow}
                 />
-                <Separator />
+                {/* <Image
+                  source={require("./assets/logo.svg")}
+                  style={styles.logo}
+                /> */}
+                {Separator(3)}
                 <TextInput
-                  onChangeText={setInput}
-                  value={input}
+                  onChangeText={setAsc}
+                  value={asc}
                   placeholder="asc"
-                  style={styles.input}
+                  style={[styles.input, styles.shadow]}
+                  onSubmitEditing={({ nativeEvent }) => {
+                    ascFn(nativeEvent.text, setAscModalVis, setOpenAiAnswer);
+                  }}
+                />
+                {Separator(3)}
+                <TextInput
+                  onChangeText={setAns}
+                  value={ans}
+                  placeholder="answer"
+                  style={[styles.input, styles.shadow]}
                 />
               </View>
             </KeyboardAvoidingView>
           </TouchableWithoutFeedback>
           <View style={styles.container}>
-            <Separator />
+            {Separator(6)}
             <Carousel
               layout={"default"}
               data={testItems}
@@ -86,56 +171,39 @@ export default function App(): JSX.Element {
                 alignItems: "center",
               }}
               renderItem={({ item }: { item: Item }) => (
-                <Pressable style={({ pressed }) => [
-                  {
-                    backgroundColor: pressed ? "#ededed" : "white",
-                  },
-                  styles.card,
-                ]}>
-                  <Image
-                    source={item.image}
-                    style={
-                      item.dims.w > item.dims.h
-                        ? {
-                            width: width * 0.8,
-                            height: (item.dims.h / item.dims.w) * width * 0.8,
-                          }
-                        : {
-                            width:
-                              (item.dims.w / item.dims.h) * width * 0.8 * 0.6,
-                            height: width * 0.6 * 0.8,
-                          }
-                    }
-                  />
-                </Pressable>
+                <View style={[styles.card]}>
+                  <Image source={item.image} style={styles.productPic} />
+                </View>
               )}
               sliderWidth={win.width}
               itemWidth={width}
             />
             <View>
-              <Separator />
+              {Separator(6)}
               <Pressable
                 style={({ pressed }) => [
                   {
                     backgroundColor: pressed ? "#ededed" : "white",
                   },
                   styles.pressable,
+                  styles.shadow,
                 ]}
               >
                 <Text>Map</Text>
               </Pressable>
-              <Separator />
+              {Separator(3)}
               <Pressable
                 style={({ pressed }) => [
                   {
                     backgroundColor: pressed ? "#ededed" : "white",
                   },
                   styles.pressable,
+                  styles.shadow,
                 ]}
               >
-                <Text>Store</Text>
+                <Text>Mine</Text>
               </Pressable>
-              <Separator />
+              {Separator(3)}
             </View>
           </View>
         </ScrollView>
@@ -158,9 +226,11 @@ const styles = StyleSheet.create({
     flex: 1,
     resizeMode: "cover",
   },
-  logo: {
-    width,
-    height: (1150 / 2000) * width,
+  shadow: {
+    shadowColor: "black",
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 10,
+    shadowOpacity: 0.25,
   },
   input: {
     backgroundColor: "white",
@@ -170,11 +240,18 @@ const styles = StyleSheet.create({
     padding: width * 0.05,
   },
   card: {
+    backgroundColor: "white",
     borderRadius: largeBordRad,
     height: width * 0.6,
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+    padding: width * 0.02,
+    overflow: "hidden",
+  },
+  productPic: {
+    flex: 1,
+    resizeMode: "contain",
   },
   pressable: {
     width,
