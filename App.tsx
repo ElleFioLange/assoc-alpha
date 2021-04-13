@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -21,13 +21,15 @@ import {
 import Carousel from "react-native-snap-carousel";
 import Logo from "./assets/logo.svg";
 import { OPENAI_API_KEY } from "./api-key";
+import Animated, { Easing } from "react-native-reanimated";
 
 const win = Dimensions.get("window");
 const width = win.width * 0.8;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Item = { name: string; image: any };
 
-const testItems = [
+const fpItems = [
   {
     name: "red octobers",
     image: require("./assets/product_pics/red_octobers.jpeg"),
@@ -50,166 +52,258 @@ const testItems = [
   },
 ];
 
-const ascFn = async (
-  question: string,
-  setAscModalVis: (b: boolean) => void,
-  setOpenAiAnswer: (text: string) => void
-) => {
-  setAscModalVis(true);
-  fetch("https://api.openai.com/v1/engines/davinci/completions", {
-    method: "POST",
-    mode: "cors",
-    cache: "no-cache",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      prompt: `The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly.
-        Human: Hello, who are you?
-        AI: I am an AI created by OpenAI. How can I help you today?
-        Human: ${question}
-        AI:`,
-      max_tokens: 20,
-      temperature: 0.9,
-      stop: ["\n"],
-    }),
-  })
-    .then((response) => response.json())
-    .then((response) => {
-      setOpenAiAnswer(response.choices[0].text);
-    });
-};
+const drItems = [
+  {
+    name: "ipod",
+    image: require("./assets/product_pics/dr/ipod.jpeg"),
+  },
+  {
+    name: "light",
+    image: require("./assets/product_pics/dr/light.jpg"),
+  },
+  {
+    name: "radio",
+    image: require("./assets/product_pics/dr/radio.jpg"),
+  },
+  {
+    name: "record_player",
+    image: require("./assets/product_pics/dr/record_player.jpg"),
+  },
+  {
+    name: "t3",
+    image: require("./assets/product_pics/dr/t3.jpg"),
+  },
+];
 
 const Separator = (n: number) => (
   <View style={{ marginTop: width * 0.02 * n }} />
 );
 
 export default function App(): JSX.Element {
+  const [dr, setDr] = useState(false);
   const [asc, setAsc] = useState("");
   const [ans, setAns] = useState("");
 
   const [ascModalVis, setAscModalVis] = useState(false);
   const [openAiAnswer, setOpenAiAnswer] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const toggleLoading = (l: boolean) => {
+    l
+      ? Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 1,
+          easing: Easing.ease,
+        }).start()
+      : Animated.timing(fadeAnim, {
+          toValue: 0.1,
+          duration: 550,
+          easing: Easing.ease,
+        }).start();
+    setLoading(!l);
+  };
+
+  const ascFn = async (question: string) => {
+    toggleLoading(false);
+    fetch("https://api.openai.com/v1/engines/davinci/completions", {
+      method: "POST",
+      mode: "cors",
+      cache: "no-cache",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        prompt: `I am an AI that can answer questions about Dieter Rams.
+            Q: Who?
+            A: Dieter Rams
+            Q: What?
+            A: Industrial Design
+            Q: Where?
+            A: Germany
+            Q: When?
+            A: 1961
+            Q: Why?
+            A: Design inhabits every built object, environment, and service. To see design is to see thought itself.
+            Q: ${question}
+            A:`,
+        max_tokens: 150,
+        temperature: 0.56,
+        stop: ["\n"],
+      }),
+    })
+      .then((response) => response.json())
+      .then((response) => {
+        setOpenAiAnswer(response.choices[0].text);
+        toggleLoading(true);
+        setAscModalVis(true);
+        setAsc("");
+      });
+  };
+
+  function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  const answerFn = (answer: string) => {
+    toggleLoading(false);
+    sleep(1500).then(() => {
+      answer === "Dieter Rams" ? setDr(true) : setDr(false);
+      setAns("");
+      toggleLoading(true);
+    });
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ImageBackground source={require("./assets/bg.png")} style={styles.bg}>
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={ascModalVis}
-          onRequestClose={() => {
-            setAscModalVis(!ascModalVis);
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: "white",
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
+    <ImageBackground source={require("./assets/bg_anim.gif")} style={styles.bg}>
+      <Animated.View
+        style={[styles.bg, { opacity: fadeAnim }]}
+        pointerEvents={loading ? "none" : "auto"}
+      >
+        <ImageBackground source={require("./assets/bg.png")} style={styles.bg}>
+          {/* <SafeAreaView style={styles.container}> */}
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={ascModalVis}
+            onRequestClose={() => {
+              setAscModalVis(!ascModalVis);
             }}
           >
-            <Text>{openAiAnswer}</Text>
-            <Button
-              title="Close"
-              onPress={() => {
-                setAscModalVis(!ascModalVis);
+            <SafeAreaView
+              style={{
+                backgroundColor: "white",
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
               }}
-            />
-          </View>
-        </Modal>
-        <ScrollView>
-          <TouchableWithoutFeedback
-            style={styles.container}
-            onPress={Keyboard.dismiss}
-          >
-            <KeyboardAvoidingView
-              behavior={Platform.OS === "ios" ? "padding" : "height"}
-              style={styles.container}
             >
-              <View style={styles.container}>
-                {Separator(6)}
-                <Logo
-                  width={width}
-                  height={width * 0.6}
-                  style={styles.shadow}
-                />
-                {/* <Image
-                  source={require("./assets/logo.svg")}
-                  style={styles.logo}
-                /> */}
+              <ScrollView
+                style={{
+                  flex: 1,
+                  padding: width * 0.1,
+                  // alignItems: "center",
+                  // justifyContent: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    // fontFamily: "San Francisco",
+                    fontSize: 50,
+                    // fontWeight: "bold",
+                  }}
+                >
+                  {openAiAnswer}
+                </Text>
                 {Separator(3)}
-                <TextInput
-                  onChangeText={setAsc}
-                  value={asc}
-                  placeholder="asc"
-                  style={[styles.input, styles.shadow]}
-                  onSubmitEditing={({ nativeEvent }) => {
-                    ascFn(nativeEvent.text, setAscModalVis, setOpenAiAnswer);
+                <Button
+                  title="Close"
+                  onPress={() => {
+                    setAscModalVis(!ascModalVis);
                   }}
                 />
-                {Separator(3)}
-                <TextInput
-                  onChangeText={setAns}
-                  value={ans}
-                  placeholder="answer"
-                  style={[styles.input, styles.shadow]}
-                />
-              </View>
-            </KeyboardAvoidingView>
-          </TouchableWithoutFeedback>
-          <View style={styles.container}>
-            {Separator(6)}
-            <Carousel
-              layout={"default"}
-              data={testItems}
-              contentContainerCustomStyle={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-              renderItem={({ item }: { item: Item }) => (
-                <View style={[styles.card]}>
-                  <Image source={item.image} style={styles.productPic} />
+                {Separator(9)}
+              </ScrollView>
+            </SafeAreaView>
+          </Modal>
+          <ScrollView>
+            <TouchableWithoutFeedback
+              style={styles.container}
+              onPress={Keyboard.dismiss}
+            >
+              <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={styles.container}
+              >
+                <View style={styles.container}>
+                  {Separator(9)}
+                  <Logo
+                    width={width}
+                    height={width * 0.6}
+                    style={styles.shadow}
+                  />
+                  {/* <Image
+                          source={require("./assets/logo.svg")}
+                          style={styles.logo}
+                          /> */}
+                  {Separator(3)}
+                  <TextInput
+                    onChangeText={setAsc}
+                    value={asc}
+                    placeholder="asc"
+                    style={[styles.input, styles.shadow]}
+                    onSubmitEditing={({ nativeEvent }) => {
+                      ascFn(nativeEvent.text);
+                    }}
+                  />
+                  {Separator(3)}
+                  <TextInput
+                    onChangeText={setAns}
+                    value={ans}
+                    placeholder="answer"
+                    style={[styles.input, styles.shadow]}
+                    onSubmitEditing={({ nativeEvent }) =>
+                      answerFn(nativeEvent.text)
+                    }
+                  />
                 </View>
-              )}
-              sliderWidth={win.width}
-              itemWidth={width}
-            />
-            <View>
+              </KeyboardAvoidingView>
+            </TouchableWithoutFeedback>
+            <View style={styles.container}>
               {Separator(6)}
-              <Pressable
-                style={({ pressed }) => [
-                  {
-                    backgroundColor: pressed ? "#ededed" : "white",
-                  },
-                  styles.pressable,
-                  styles.shadow,
-                ]}
-              >
-                <Text>Map</Text>
-              </Pressable>
-              {Separator(3)}
-              <Pressable
-                style={({ pressed }) => [
-                  {
-                    backgroundColor: pressed ? "#ededed" : "white",
-                  },
-                  styles.pressable,
-                  styles.shadow,
-                ]}
-              >
-                <Text>Mine</Text>
-              </Pressable>
-              {Separator(3)}
+              <Carousel
+                layout={"default"}
+                data={dr ? drItems : fpItems}
+                contentContainerCustomStyle={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+                style={styles.shadow}
+                renderItem={({ item }: { item: Item }) => (
+                  <View style={[styles.card, styles.shadow]}>
+                    <Image source={item.image} style={styles.productPic} />
+                  </View>
+                )}
+                sliderWidth={win.width}
+                itemWidth={width}
+              />
+              <View>
+                <Pressable
+                  onPress={() => null}
+                  style={({ pressed }) => [
+                    {
+                      backgroundColor: pressed ? "#ededed" : "white",
+                    },
+                    styles.pressable,
+                    styles.shadow,
+                  ]}
+                >
+                  <Text>Map</Text>
+                </Pressable>
+                {Separator(3)}
+                <Pressable
+                  style={({ pressed }) => [
+                    {
+                      backgroundColor: pressed ? "#ededed" : "white",
+                    },
+                    styles.pressable,
+                    styles.shadow,
+                  ]}
+                >
+                  <Text>Mine</Text>
+                </Pressable>
+                {Separator(3)}
+              </View>
             </View>
-          </View>
-        </ScrollView>
-      </ImageBackground>
-      {__DEV__ && <StatusBar />}
-    </SafeAreaView>
+          </ScrollView>
+          <StatusBar />
+          {/* </SafeAreaView> */}
+        </ImageBackground>
+      </Animated.View>
+    </ImageBackground>
   );
 }
 
@@ -228,7 +322,7 @@ const styles = StyleSheet.create({
   },
   shadow: {
     shadowColor: "black",
-    shadowOffset: { width: 0, height: 0 },
+    shadowOffset: { width: 0, height: width * 0.03 },
     shadowRadius: 10,
     shadowOpacity: 0.25,
   },
@@ -247,7 +341,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: width * 0.02,
-    overflow: "hidden",
+    marginBottom: width * 0.12,
   },
   productPic: {
     flex: 1,
