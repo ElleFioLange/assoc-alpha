@@ -17,74 +17,190 @@ import {
   Modal,
   Button,
 } from "react-native";
+import Svg, { Circle, Line } from "react-native-svg";
 import Carousel from "react-native-snap-carousel";
 import Logo from "./assets/logo.svg";
 import { OPENAI_API_KEY } from "./api-key";
 import Animated, { Easing } from "react-native-reanimated";
+import { FlatList } from "react-native-gesture-handler";
 
 const win = Dimensions.get("window");
 const width = win.width * 0.8;
+const height = win.height * 0.8;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Item = { name: string; image: any };
+type Item = { name: string; content: JSX.Element };
+
+const smallBordRad = width * 0.015;
+const largeBordRad = width * 0.03;
+
+const styles = StyleSheet.create({
+  title: {
+    fontSize: 50,
+    textAlignVertical: "center",
+    textAlign: "center",
+  },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  bg: {
+    flex: 1,
+    resizeMode: "cover",
+  },
+  shadow: {
+    shadowColor: "black",
+    shadowOffset: { width: 0, height: width * 0.03 },
+    shadowRadius: 10,
+    shadowOpacity: 0.25,
+  },
+  input: {
+    backgroundColor: "white",
+    width,
+    height: width * 0.15,
+    borderRadius: smallBordRad,
+    padding: width * 0.05,
+    textAlign: "center",
+  },
+  card: {
+    backgroundColor: "white",
+    borderRadius: largeBordRad,
+    height: width * 0.6,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: width * 0.02,
+    marginBottom: width * 0.12,
+  },
+  productPic: {
+    flex: 1,
+    resizeMode: "contain",
+  },
+  pressable: {
+    width,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    height: width * 0.15,
+    borderRadius: smallBordRad,
+  },
+  shelf: {
+    width: width,
+    height: height / 4,
+    borderBottomColor: "#e0e0e0",
+    borderBottomWidth: 1,
+  },
+  shelfItem: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    width: width,
+  },
+});
 
 const fpItems = [
   {
     name: "red octobers",
-    image: require("./assets/product_pics/red_octobers.jpeg"),
+    content: (
+      <Image
+        source={require("./assets/product_pics/red_octobers.jpeg")}
+        style={styles.productPic}
+      />
+    ),
   },
   {
     name: "off---white bag",
-    image: require("./assets/product_pics/offwhite_bag.jpeg"),
+    content: (
+      <Image
+        source={require("./assets/product_pics/offwhite_bag.jpeg")}
+        style={styles.productPic}
+      />
+    ),
   },
   {
     name: "supreme crowbar",
-    image: require("./assets/product_pics/supreme_crowbar.png"),
+    content: (
+      <Image
+        source={require("./assets/product_pics/supreme_crowbar.png")}
+        style={styles.productPic}
+      />
+    ),
   },
   {
     name: "dior j1s",
-    image: require("./assets/product_pics/dior_j1s.jpeg"),
+    content: (
+      <Image
+        source={require("./assets/product_pics/dior_j1s.jpeg")}
+        style={styles.productPic}
+      />
+    ),
   },
   {
     name: "vv sandals",
-    image: require("./assets/product_pics/vv_sandals.jpeg"),
+    content: (
+      <Image
+        source={require("./assets/product_pics/vv_sandals.jpeg")}
+        style={styles.productPic}
+      />
+    ),
   },
 ];
 
 const drItems = [
   {
     name: "ipod",
-    image: require("./assets/product_pics/dr/ipod.jpeg"),
+    content: (
+      <Image
+        source={require("./assets/product_pics/dr/ipod.jpeg")}
+        style={styles.productPic}
+      />
+    ),
   },
   {
     name: "light",
-    image: require("./assets/product_pics/dr/light.jpg"),
+    content: (
+      <Image
+        source={require("./assets/product_pics/dr/light.jpg")}
+        style={styles.productPic}
+      />
+    ),
   },
   {
     name: "radio",
-    image: require("./assets/product_pics/dr/radio.jpg"),
+    content: (
+      <Image
+        source={require("./assets/product_pics/dr/radio.jpg")}
+        style={styles.productPic}
+      />
+    ),
   },
   {
     name: "record_player",
-    image: require("./assets/product_pics/dr/record_player.jpg"),
+    content: (
+      <Image
+        source={require("./assets/product_pics/dr/record_player.jpg")}
+        style={styles.productPic}
+      />
+    ),
   },
-  {
-    name: "t3",
-    image: require("./assets/product_pics/dr/t3.jpg"),
-  },
+  // {
+  //   name: "t3",
+  //   image: require("./assets/product_pics/dr/t3.jpg"),
+  // },
 ];
 
 const Separator = (n: number) => (
   <View style={{ marginTop: width * 0.02 * n }} />
 );
 
-export default function App() {
+export default function App(): JSX.Element {
   const [dr, setDr] = useState(false);
   const [asc, setAsc] = useState("");
   const [ans, setAns] = useState("");
 
-  const [ascModalVis, setAscModalVis] = useState(false);
-  const [openAiAnswer, setOpenAiAnswer] = useState("");
+  const [modalVis, setModalVis] = useState(false);
+  const [modalContent, setModalContent] = useState<JSX.Element | null>(null);
   const [loading, setLoading] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -116,18 +232,18 @@ export default function App() {
       },
       body: JSON.stringify({
         prompt: `I am an AI that can answer questions about Dieter Rams.
-            Q: Who?
-            A: Dieter Rams
-            Q: What?
-            A: Industrial Design
-            Q: Where?
-            A: Germany
-            Q: When?
-            A: 1961
-            Q: Why?
-            A: Design inhabits every built object, environment, and service. To see design is to see thought manifested in the physical.
-            Q: ${question}
-            A:`,
+Q: Who?
+A: Dieter Rams
+Q: What?
+A: Industrial Design
+Q: Where?
+A: Germany
+Q: When?
+A: 1961
+Q: Why?
+A: Design inhabits every built object, environment, and service. To see design is to see thought manifested in the physical.
+Q: ${question}
+A:`,
         max_tokens: 150,
         temperature: 0.56,
         stop: ["\n"],
@@ -135,9 +251,19 @@ export default function App() {
     })
       .then((response) => response.json())
       .then((response) => {
-        setOpenAiAnswer(response.choices[0].text);
+        setModalContent(
+          <Text
+            style={{
+              // fontFamily: "San Francisco",
+              fontSize: 50,
+              // fontWeight: "bold",
+            }}
+          >
+            {response.choices[0].text}
+          </Text>
+        );
         toggleLoading(true);
-        setAscModalVis(true);
+        setModalVis(true);
         setAsc("");
       });
   };
@@ -155,6 +281,180 @@ export default function App() {
     });
   };
 
+  const openMap = () => {
+    setModalContent(
+      <View style={[styles.container, { width: width, height: height }]}>
+        <Svg height="100%" width="100%" viewBox="0 0 100 100">
+          <Line
+            x1="50"
+            y1="75"
+            x2="50"
+            y2="25"
+            stroke="#e0e0e0"
+            strokeWidth="1"
+          />
+          <Line
+            x1="50"
+            y1="75"
+            x2="65"
+            y2="95"
+            stroke="#e0e0e0"
+            strokeWidth="1"
+          />
+          <Line
+            x1="50"
+            y1="75"
+            x2="80"
+            y2="75"
+            stroke="#e0e0e0"
+            strokeWidth="1"
+          />
+          <Line
+            x1="15"
+            y1="72"
+            x2="65"
+            y2="95"
+            stroke="#e0e0e0"
+            strokeWidth="1"
+          />
+          <Line
+            x1="15"
+            y1="72"
+            x2="10"
+            y2="50"
+            stroke="#e0e0e0"
+            strokeWidth="1"
+          />
+          <Line
+            x1="50"
+            y1="25"
+            x2="10"
+            y2="50"
+            stroke="#e0e0e0"
+            strokeWidth="1"
+          />
+          <Line
+            x1="50"
+            y1="25"
+            x2="75"
+            y2="20"
+            stroke="#e0e0e0"
+            strokeWidth="1"
+          />
+          <Line
+            x1="80"
+            y1="75"
+            x2="75"
+            y2="20"
+            stroke="#e0e0e0"
+            strokeWidth="1"
+          />
+          <Line
+            x1="55"
+            y1="-10"
+            x2="75"
+            y2="20"
+            stroke="#e0e0e0"
+            strokeWidth="1"
+          />
+          <Circle
+            cx="50"
+            cy="75"
+            r="5"
+            stroke="#2462ff"
+            strokeWidth="0.5"
+            fill="white"
+          />
+          <Circle
+            cx="50"
+            cy="25"
+            r="5"
+            stroke="#2462ff"
+            strokeWidth="0.5"
+            fill="white"
+          />
+          <Circle
+            cx="80"
+            cy="75"
+            r="5"
+            stroke="#2462ff"
+            strokeWidth="0.5"
+            fill="white"
+          />
+          <Circle
+            cx="65"
+            cy="95"
+            r="5"
+            stroke="#2462ff"
+            strokeWidth="0.5"
+            fill="white"
+          />
+          <Circle
+            cx="15"
+            cy="72"
+            r="5"
+            stroke="#2462ff"
+            strokeWidth="0.5"
+            fill="white"
+          />
+          <Circle
+            cx="10"
+            cy="50"
+            r="5"
+            stroke="#2462ff"
+            strokeWidth="0.5"
+            fill="white"
+          />
+          <Circle
+            cx="75"
+            cy="20"
+            r="5"
+            stroke="#2462ff"
+            strokeWidth="0.5"
+            fill="white"
+          />
+          <Circle
+            cx="55"
+            cy="-10"
+            r="5"
+            stroke="#2462ff"
+            strokeWidth="0.5"
+            fill="white"
+          />
+        </Svg>
+      </View>
+    );
+    setModalVis(true);
+  };
+
+  const openMine = () => {
+    setModalContent(
+      <>
+        <FlatList
+          data={fpItems}
+          renderItem={({ item }) => (
+            <View style={styles.shelfItem}>{item.content}</View>
+          )}
+          horizontal={true}
+          style={styles.shelf}
+          keyExtractor={(item) => item.name}
+        />
+        <Text>Home</Text>
+        <FlatList
+          data={drItems}
+          renderItem={({ item }) => (
+            <View style={styles.shelfItem}>{item.content}</View>
+          )}
+          horizontal={true}
+          style={styles.shelf}
+          keyExtractor={(item) => item.name}
+        />
+        <Text>Dieter Rams</Text>
+      </>
+    );
+    setModalVis(true);
+  };
+
   return (
     <ImageBackground source={require("./assets/bg_anim.gif")} style={styles.bg}>
       <Animated.View
@@ -166,9 +466,9 @@ export default function App() {
           <Modal
             animationType="slide"
             transparent={true}
-            visible={ascModalVis}
+            visible={modalVis}
             onRequestClose={() => {
-              setAscModalVis(!ascModalVis);
+              setModalVis(!modalVis);
             }}
           >
             <SafeAreaView
@@ -187,20 +487,12 @@ export default function App() {
                   // justifyContent: "center",
                 }}
               >
-                <Text
-                  style={{
-                    // fontFamily: "San Francisco",
-                    fontSize: 50,
-                    // fontWeight: "bold",
-                  }}
-                >
-                  {openAiAnswer}
-                </Text>
+                {modalContent}
                 {Separator(3)}
                 <Button
                   title="Close"
                   onPress={() => {
-                    setAscModalVis(!ascModalVis);
+                    setModalVis(!modalVis);
                   }}
                 />
                 {Separator(9)}
@@ -231,7 +523,7 @@ export default function App() {
                   <TextInput
                     onChangeText={setAsc}
                     value={asc}
-                    placeholder="asc"
+                    placeholder="ASC"
                     style={[styles.input, styles.shadow]}
                     onSubmitEditing={({ nativeEvent }) => {
                       ascFn(nativeEvent.text);
@@ -241,7 +533,7 @@ export default function App() {
                   <TextInput
                     onChangeText={setAns}
                     value={ans}
-                    placeholder="answer"
+                    placeholder="ANSWER"
                     style={[styles.input, styles.shadow]}
                     onSubmitEditing={({ nativeEvent }) =>
                       answerFn(nativeEvent.text)
@@ -263,7 +555,7 @@ export default function App() {
                 style={styles.shadow}
                 renderItem={({ item }: { item: Item }) => (
                   <View style={[styles.card, styles.shadow]}>
-                    <Image source={item.image} style={styles.productPic} />
+                    {item.content}
                   </View>
                 )}
                 sliderWidth={win.width}
@@ -271,7 +563,7 @@ export default function App() {
               />
               <View>
                 <Pressable
-                  onPress={() => null}
+                  onPress={openMap}
                   style={({ pressed }) => [
                     {
                       backgroundColor: pressed ? "#ededed" : "white",
@@ -284,6 +576,7 @@ export default function App() {
                 </Pressable>
                 {Separator(3)}
                 <Pressable
+                  onPress={openMine}
                   style={({ pressed }) => [
                     {
                       backgroundColor: pressed ? "#ededed" : "white",
@@ -304,53 +597,3 @@ export default function App() {
     </ImageBackground>
   );
 }
-
-const smallBordRad = width * 0.015;
-const largeBordRad = width * 0.03;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  bg: {
-    flex: 1,
-    resizeMode: "cover",
-  },
-  shadow: {
-    shadowColor: "black",
-    shadowOffset: { width: 0, height: width * 0.03 },
-    shadowRadius: 10,
-    shadowOpacity: 0.25,
-  },
-  input: {
-    backgroundColor: "white",
-    width,
-    height: width * 0.15,
-    borderRadius: smallBordRad,
-    padding: width * 0.05,
-  },
-  card: {
-    backgroundColor: "white",
-    borderRadius: largeBordRad,
-    height: width * 0.6,
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: width * 0.02,
-    marginBottom: width * 0.12,
-  },
-  productPic: {
-    flex: 1,
-    resizeMode: "contain",
-  },
-  pressable: {
-    width,
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    height: width * 0.15,
-    borderRadius: smallBordRad,
-  },
-});
