@@ -1,5 +1,4 @@
-import { StatusBar } from "expo-status-bar";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   StyleSheet,
@@ -79,7 +78,7 @@ const Separator = (n: number) => (
   <View style={{ marginTop: width * 0.02 * n }} />
 );
 
-export default function App(): JSX.Element {
+export default function App() {
   const [dr, setDr] = useState(false);
   const [asc, setAsc] = useState("");
   const [ans, setAns] = useState("");
@@ -94,7 +93,7 @@ export default function App(): JSX.Element {
     l
       ? Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 1,
+          duration: 550,
           easing: Easing.ease,
         }).start()
       : Animated.timing(fadeAnim, {
@@ -126,7 +125,7 @@ export default function App(): JSX.Element {
             Q: When?
             A: 1961
             Q: Why?
-            A: Design inhabits every built object, environment, and service. To see design is to see thought itself.
+            A: Design inhabits every built object, environment, and service. To see design is to see thought manifested in the physical.
             Q: ${question}
             A:`,
         max_tokens: 150,
@@ -299,7 +298,6 @@ export default function App(): JSX.Element {
               </View>
             </View>
           </ScrollView>
-          <StatusBar />
           {/* </SafeAreaView> */}
         </ImageBackground>
       </Animated.View>
