@@ -455,6 +455,42 @@ A:`,
     setModalVis(true);
   };
 
+  const openItem = (item) => {
+    setModalContent(
+      <View style={styles.container}>
+        <View
+          style={{
+            width: width,
+            height: width * 0.6,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          {item.content}
+        </View>
+        <Text style={{ fontSize: 15 }}>{item.name}</Text>
+        <Text>
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed imperdiet
+          sodales enim eu interdum. Cras elit sapien, tristique et mattis eget,
+          interdum in ligula. Nullam condimentum nisl vitae tellus auctor, a
+          lobortis est interdum. Ut luctus nunc dui, a consectetur magna rutrum
+          sed. Pellentesque aliquam vitae dui et lobortis. Aliquam eu bibendum
+          magna. Quisque pellentesque felis nec laoreet mattis. Nam sed nibh
+          luctus, congue enim ut, ultricies erat. Nullam placerat, justo vitae
+          interdum vehicula, dui sem pulvinar ligula, a rutrum sapien sapien
+          eget felis. Sed viverra nibh in turpis blandit tempor. Curabitur enim
+          tellus, vestibulum quis nisl finibus, efficitur tincidunt nunc. Donec
+          bibendum urna ut felis fringilla convallis. Duis vitae augue non
+          tellus pharetra varius. Donec tortor nulla, euismod sit amet consequat
+          vel, luctus id elit. Nam at eleifend ante. In fringilla finibus neque
+          at blandit. Nullam nec arcu sapien.
+        </Text>
+      </View>
+    );
+    setModalVis(true);
+  };
+
   return (
     <ImageBackground source={require("./assets/bg_anim.gif")} style={styles.bg}>
       <Animated.View
@@ -465,7 +501,7 @@ A:`,
           {/* <SafeAreaView style={styles.container}> */}
           <Modal
             animationType="slide"
-            transparent={true}
+            transparent={false}
             visible={modalVis}
             onRequestClose={() => {
               setModalVis(!modalVis);
@@ -554,9 +590,11 @@ A:`,
                 }}
                 style={styles.shadow}
                 renderItem={({ item }: { item: Item }) => (
-                  <View style={[styles.card, styles.shadow]}>
-                    {item.content}
-                  </View>
+                  <TouchableWithoutFeedback onPress={() => openItem(item)}>
+                    <View style={[styles.card, styles.shadow]}>
+                      {item.content}
+                    </View>
+                  </TouchableWithoutFeedback>
                 )}
                 sliderWidth={win.width}
                 itemWidth={width}
